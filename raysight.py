@@ -1,5 +1,6 @@
 import math
 import copy
+import random
 import pygame
 
 pygame.init()
@@ -188,10 +189,7 @@ class Bat(object):
             collision = self.get_rect().colliderect(ray.get_rect())
             if collision:
                 if ray.collided and ray.exited_bat:
-                    if RAY_DIRECTION_FOR_BEAM:
-                        direction = -1 * ray.facing
-                    else:
-                        direction = ray.pos - self.pos
+                    direction = -1 * ray.facing
                     if direction[0] or direction[1]:
                         direction = direction.normalize()
                         self.beams.append(Beam(self, self.pos, direction, ray.strength, ray.interest))
@@ -313,20 +311,19 @@ class Wall(object):
 
 
 def main():
-    global RAY_STRENGTH, RAY_DECAY, WALL_DECAY, BEAM_DECAY, RAY_DIRECTION_FOR_BEAM
+    global RAY_STRENGTH, RAY_DECAY, WALL_DECAY, BEAM_DECAY
     global RAY_SPEED, RAYS_PER_EMIT, EMISSION_ANGLE
     global BAT_RADIUS, RAY_RADIUS, BEAM_WIDTH, BEAM_LENGTH
     global DRAW_RELATIVE_BEAMS, DRAW_POSITION_BEAMS
-    global screen, clock, walls
+    global screen, clock, bats, walls
 
     RAY_STRENGTH = 200
     RAY_DECAY = 1
     WALL_DECAY = 10
     BEAM_DECAY = 2
-    RAY_DIRECTION_FOR_BEAM = True
 
     RAY_SPEED = 8
-    FRAMES_PER_EMIT = 8
+    FRAMES_PER_EMIT = 16
     RAYS_PER_EMIT = 32
     EMISSION_ANGLE = 5 * math.pi / 4
 
@@ -340,22 +337,24 @@ def main():
     DRAW_RELATIVE_BEAMS = True
     DRAW_POSITION_BEAMS = True
 
+    NUMBER_OF_BATS = 3
     AUTO_CONTROLLED = True
     DEFAULT_SPEED = 5
+    DETECT_OTHER_RAYS = True
 
     screen = pygame.display.set_mode((1280, 720), pygame.RESIZABLE)
     clock = pygame.time.Clock()
     bats = list()
-    bats.append(Bat(Vector(250, 250), 0))
-    bats.append(Bat(Vector(400, 400), 0))
-    bats.append(Bat(Vector(900, 200), 0))
+    for i in range(NUMBER_OF_BATS):
+        bats.append(Bat(Vector(random.randint(0, screen.get_rect().width), random.randint(0, screen.get_rect().height)), 2 * math.pi * random.random()))
     walls = [Wall((0, 0), (screen.get_rect().w, 10), -0.5, True),
              Wall((0, 10), (10, screen.get_rect().h - 10), -0.5, True),
              Wall((screen.get_rect().w - 10, 10), (10, screen.get_rect().h - 10), -0.2, True),
              Wall((10, screen.get_rect().h - 10), (screen.get_rect().w - 20, 10), -0.1, True),
-             Wall((100, 100), (100, 100), 1, False),
-             Wall((1000, 200), (10, 300), -1, True),
-             Wall((300, 500), (600, 10), -0.5, True)]
+             Wall((150, 100), (50, 200), 0.2, False),
+             Wall((1000, 200), (10, 300), -1, False),
+             Wall((200, 500), (500, 10), -0.5, True),
+             Wall((1100, 600), (50, 50), 1, False)]
 
     done = False
     frame = 0
@@ -412,8 +411,11 @@ def main():
                 else:
                     bat.ang_vel += math.pi
             bat.draw()
-            for bat_emitter in bats:
-                bat.test_rays(bat_emitter.rays)
+            if DETECT_OTHER_RAYS:
+                for bat_emitter in bats:
+                    bat.test_rays(bat_emitter.rays)
+            else:
+                bat.test_rays(bat.rays)
         pygame.display.flip()
         frame += 1
         clock.tick(60)
